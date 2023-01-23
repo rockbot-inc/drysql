@@ -110,7 +110,7 @@ func (drysql DrySql) QueryWithoutPrepare(query string, scanner func(rows *sql.Ro
 
 */
 
-func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierKey string, updateStruct interface{}) (err error) {
+func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierKey string, updateStruct interface{}, fixedConditional string) (err error) {
 
 	var columnsToUpdate string
 	var inputs []interface{}
@@ -146,9 +146,10 @@ func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierKey
 		return fmt.Errorf("drysql: no fields to update")
 	}
 
+
 	inputs = append(inputs, rowIdentifierValue)
 
-	query := "UPDATE " + tableName + " SET " + columnsToUpdate + " WHERE " + rowIdentifierKey + " = ?"
+	query := "UPDATE " + tableName + " SET " + columnsToUpdate + " WHERE " + rowIdentifierKey + " = ?" + fixedConditional
 
 	_, err = drysql.PreparedExec(query, inputs)
 

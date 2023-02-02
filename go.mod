@@ -1,3 +1,3 @@
-module github.com/rockbot-inc/drysql
+module github.com/gitsakos/drysql
 
 go 1.14

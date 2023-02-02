@@ -140,7 +140,7 @@ func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierTag
 	}
 
 	if len(optionalConditional) > 0{
-		optionalConditional = "AND " + optionalConditional
+		optionalConditional = " AND " + optionalConditional
 	}
 
 	inputs = append(inputs, rowIdentifierValue)

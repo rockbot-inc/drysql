@@ -1,7 +1,6 @@
 package drysql
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"database/sql"

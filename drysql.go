@@ -136,7 +136,7 @@ func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierTag
 	}
 
 	if len(inputs) == 0{
-		return fmt.Errorf("drysql: no fields to update")
+		return nil
 	}
 
 	if len(optionalConditional) > 0{

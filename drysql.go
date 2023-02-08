@@ -32,9 +32,9 @@ func (drysql DrySql) PreparedExec(query string, inputs []interface{}) (sql.Resul
 	return stmtOut.Exec(inputs...)
 }
 
-func (drysql DrySql) ExecWithoutPrepare(query string) (result sql.Result, err error) {
+func (drysql DrySql) ExecWithoutPrepare(query string, args ...interface{}) (result sql.Result, err error) {
 
-	return drysql.sqlImpl.Exec(query)
+	return drysql.sqlImpl.Exec(query, args)
 }
 
 func (drysql DrySql) QueryRow(query string, inputs []interface{}, outputs []interface{}) error {
@@ -146,6 +146,7 @@ func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierTag
 
 	query := "UPDATE " + tableName + " SET " + columnsToUpdate + " WHERE " + rowIdentifierTag + " = ?" + optionalConditional
 
+	// don't use a prepared statement as reuse is less likely with these dynamic queries
 	_, err = drysql.PreparedExec(query, inputs)
 
 	return err

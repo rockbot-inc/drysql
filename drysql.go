@@ -1,10 +1,10 @@
 package drysql
 
 import (
-	"reflect"
-	"strings"
 	"database/sql"
 	"database/sql/driver"
+	"reflect"
+	"strings"
 )
 
 type SqlInterface interface {
@@ -24,6 +24,7 @@ func GetDrySqlImplementation(sqlImpl SqlInterface) DrySql {
 func (drysql DrySql) PreparedExec(query string, inputs []interface{}) (sql.Result, error) {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
+	defer stmtOut.Close()
 
 	if err != nil {
 		return nil, err
@@ -40,6 +41,7 @@ func (drysql DrySql) ExecWithoutPrepare(query string, args ...interface{}) (resu
 func (drysql DrySql) QueryRow(query string, inputs []interface{}, outputs []interface{}) error {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
+	defer stmtOut.Close()
 
 	if err != nil {
 		return err
@@ -53,6 +55,7 @@ func (drysql DrySql) QueryRow(query string, inputs []interface{}, outputs []inte
 func (drysql DrySql) PreparedQuery(query string, inputs []interface{}, scanner func(rows *sql.Rows) error) error {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
+	defer stmtOut.Close()
 
 	if err != nil {
 		return err
@@ -96,7 +99,6 @@ func (drysql DrySql) QueryWithoutPrepare(query string, scanner func(rows *sql.Ro
 	return rows.Err()
 }
 
-
 // Accepts a struct of optional pointers for updating mysql columns in the specified table
 // All struct fields must include a db tag
 // rowIdentifierTag identifies which struct field is the row key
@@ -134,11 +136,11 @@ func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierTag
 		}
 	}
 
-	if len(inputs) == 0{
+	if len(inputs) == 0 {
 		return nil
 	}
 
-	if len(optionalConditional) > 0{
+	if len(optionalConditional) > 0 {
 		optionalConditional = " AND " + optionalConditional
 	}
 

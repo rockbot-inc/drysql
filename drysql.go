@@ -24,11 +24,10 @@ func GetDrySqlImplementation(sqlImpl SqlInterface) DrySql {
 func (drysql DrySql) PreparedExec(query string, inputs []interface{}) (sql.Result, error) {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
-	defer stmtOut.Close()
-
 	if err != nil {
 		return nil, err
 	}
+	defer stmtOut.Close()
 
 	return stmtOut.Exec(inputs...)
 }
@@ -41,11 +40,10 @@ func (drysql DrySql) ExecWithoutPrepare(query string, args ...interface{}) (resu
 func (drysql DrySql) QueryRow(query string, inputs []interface{}, outputs []interface{}) error {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
-	defer stmtOut.Close()
-
 	if err != nil {
 		return err
 	}
+	defer stmtOut.Close()
 
 	row := stmtOut.QueryRow(inputs...)
 
@@ -55,11 +53,10 @@ func (drysql DrySql) QueryRow(query string, inputs []interface{}, outputs []inte
 func (drysql DrySql) PreparedQuery(query string, inputs []interface{}, scanner func(rows *sql.Rows) error) error {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
-	defer stmtOut.Close()
-
 	if err != nil {
 		return err
 	}
+	defer stmtOut.Close()
 
 	var rows *sql.Rows
 	if rows, err = stmtOut.Query(inputs...); err != nil {

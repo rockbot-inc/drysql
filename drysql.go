@@ -96,10 +96,24 @@ func (drysql DrySql) QueryWithoutPrepare(query string, scanner func(rows *sql.Ro
 	return rows.Err()
 }
 
+// UpdateTableRowFromStruct
+
 // Accepts a struct of optional pointers for updating mysql columns in the specified table
-// All struct fields must include a db tag
+// Use the `db:"column_name"` to tag struct fields with column name.  All struct fields must include a db tag
 // rowIdentifierTag identifies which struct field is the row key
+// Only the non-nil values from tagged fields in the struct will be updated.
 // can include an optional fixed conditional params
+
+/* 	EXAMPLE USAGE
+
+	userUpdate := struct{
+		UserID `db:"user_id"`
+		FirstName *string `db:"first_name"`
+		LastName *string `db:"last_name"`
+	}
+
+	err = drysql.UpdateTableRowFromStruct("my_users", "user_id", userUpdate)
+*/
 
 func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierTag string, updateStruct interface{}, optionalConditional string) (err error) {
 

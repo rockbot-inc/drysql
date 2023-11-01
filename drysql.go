@@ -1,11 +1,10 @@
 package drysql
 
 import (
-	"fmt"
-	"reflect"
-	"strings"
 	"database/sql"
 	"database/sql/driver"
+	"reflect"
+	"strings"
 )
 
 type SqlInterface interface {
@@ -32,10 +31,10 @@ var SqlLogger SqlLoggingInterface
 func (drysql DrySql) PreparedExec(query string, inputs []interface{}) (sql.Result, error) {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
-
 	if err != nil {
 		return nil, err
 	}
+	defer stmtOut.Close()
 
 	if SqlLogger != nil {
 		SqlLogger.AddSqlWrite()
@@ -44,18 +43,18 @@ func (drysql DrySql) PreparedExec(query string, inputs []interface{}) (sql.Resul
 	return stmtOut.Exec(inputs...)
 }
 
-func (drysql DrySql) ExecWithoutPrepare(query string) (result sql.Result, err error) {
+func (drysql DrySql) ExecWithoutPrepare(query string, args ...interface{}) (result sql.Result, err error) {
 
-	return drysql.sqlImpl.Exec(query)
+	return drysql.sqlImpl.Exec(query, args)
 }
 
 func (drysql DrySql) QueryRow(query string, inputs []interface{}, outputs []interface{}) error {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
-
 	if err != nil {
 		return err
 	}
+	defer stmtOut.Close()
 
 	if SqlLogger != nil {
 		SqlLogger.AddSqlRead()
@@ -69,10 +68,10 @@ func (drysql DrySql) QueryRow(query string, inputs []interface{}, outputs []inte
 func (drysql DrySql) PreparedQuery(query string, inputs []interface{}, scanner func(rows *sql.Rows) error) error {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
-
 	if err != nil {
 		return err
 	}
+	defer stmtOut.Close()
 
 	if SqlLogger != nil {
 		SqlLogger.AddSqlRead()
@@ -117,7 +116,14 @@ func (drysql DrySql) QueryWithoutPrepare(query string, scanner func(rows *sql.Ro
 }
 
 // UpdateTableRowFromStruct
-/*updates a specified mysql table and row with fields from a struct.   Use the `db:"column_name"` to tag struct fields with column name.  Only the non-nil values from tagged fields in the struct will be updated.
+
+// Accepts a struct of optional pointers for updating mysql columns in the specified table
+// Use the `db:"column_name"` to tag struct fields with column name.  All struct fields must include a db tag
+// rowIdentifierTag identifies which struct field is the row key
+// Only the non-nil values from tagged fields in the struct will be updated.
+// can include an optional fixed conditional params
+
+/* 	EXAMPLE USAGE
 
 	userUpdate := struct{
 		UserID `db:"user_id"`
@@ -126,10 +132,9 @@ func (drysql DrySql) QueryWithoutPrepare(query string, scanner func(rows *sql.Ro
 	}
 
 	err = drysql.UpdateTableRowFromStruct("my_users", "user_id", userUpdate)
-
 */
 
-func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierKey string, updateStruct interface{}) (err error) {
+func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierTag string, updateStruct interface{}, optionalConditional string) (err error) {
 
 	var columnsToUpdate string
 	var inputs []interface{}
@@ -148,7 +153,7 @@ func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierKey
 			field := t.Field(i)
 			columnKey := field.Tag.Get("db")
 			if columnKey != "" {
-				if strings.EqualFold(columnKey, rowIdentifierKey) {
+				if strings.EqualFold(columnKey, rowIdentifierTag) {
 					rowIdentifierValue = columnValue
 				} else {
 					if len(columnsToUpdate) != 0 {
@@ -161,14 +166,19 @@ func (drysql DrySql) UpdateTableRowFromStruct(tableName string, rowIdentifierKey
 		}
 	}
 
-	if len(inputs) == 0{
-		return fmt.Errorf("drysql: no fields to update")
+	if len(inputs) == 0 {
+		return nil
+	}
+
+	if len(optionalConditional) > 0 {
+		optionalConditional = " AND " + optionalConditional
 	}
 
 	inputs = append(inputs, rowIdentifierValue)
 
-	query := "UPDATE " + tableName + " SET " + columnsToUpdate + " WHERE " + rowIdentifierKey + " = ?"
+	query := "UPDATE " + tableName + " SET " + columnsToUpdate + " WHERE " + rowIdentifierTag + " = ?" + optionalConditional
 
+	// don't use a prepared statement as reuse is less likely with these dynamic queries
 	_, err = drysql.PreparedExec(query, inputs)
 
 	return err

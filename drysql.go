@@ -22,12 +22,23 @@ func GetDrySqlImplementation(sqlImpl SqlInterface) DrySql {
 	return DrySql{sqlImpl: sqlImpl}
 }
 
+type SqlLoggingInterface interface {
+	AddSqlRead()
+	AddSqlWrite()
+}
+
+var SqlLogger SqlLoggingInterface
+
 func (drysql DrySql) PreparedExec(query string, inputs []interface{}) (sql.Result, error) {
 
 	stmtOut, err := drysql.sqlImpl.Prepare(query)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if SqlLogger != nil {
+		SqlLogger.AddSqlWrite()
 	}
 
 	return stmtOut.Exec(inputs...)
@@ -46,6 +57,10 @@ func (drysql DrySql) QueryRow(query string, inputs []interface{}, outputs []inte
 		return err
 	}
 
+	if SqlLogger != nil {
+		SqlLogger.AddSqlRead()
+	}
+
 	row := stmtOut.QueryRow(inputs...)
 
 	return row.Scan(outputs...)
@@ -57,6 +72,10 @@ func (drysql DrySql) PreparedQuery(query string, inputs []interface{}, scanner f
 
 	if err != nil {
 		return err
+	}
+
+	if SqlLogger != nil {
+		SqlLogger.AddSqlRead()
 	}
 
 	var rows *sql.Rows
